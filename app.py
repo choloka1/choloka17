@@ -18,15 +18,15 @@ from datetime import datetime
 from os import urandom
 from flask import Flask,send_file
 from flask_sqlalchemy import SQLAlchemy
-from threading import Thread
 
 # -------------------- CONFIG --------------------
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask(__name__)
-app.secret_key = "sdf8#2kdn!9slq3j"  # შეიძლება იყოს ციფრებიც, ასოებიც, სიმბოლოებიც
+import os
 
+app.secret_key = os.environ.get("SECRET_KEY")
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -100,31 +100,6 @@ class CarouselImage(db.Model):
     order = db.Column(db.Integer, default=0) # თანმიმდევრობისთვის
 
 # -------------------- INIT --------------------
-
-def send_email(subject, body, to_email):
-    sender_email = "shota.cholokava17@gmail.com"  # შეცვალე შენით
-    app_password = "vgdc lvtc iozy jwni"     # ეს არის 16-ნიშნა კოდი Gmail–დან
-
-    # მესიჯის შექმნა
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = to_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
-
-    try:
-        # SMTP კავშირის გახსნა
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()                  # დაშიფვრა
-            server.login(sender_email, app_password)
-            server.sendmail(sender_email, to_email, msg.as_string())
-        print(f"✅ Email წარმატებით გაიგზავნა {to_email}")
-        return True
-    except Exception as e:
-        print(f"❌ Email გაგზავნა ვერ მოხერხდა: {e}")
-        return False
-
-
 with app.app_context():
     db.create_all()
 
@@ -402,6 +377,7 @@ def index():
 def verify1():
     return render_template('verify.html')
 
+
 @app.route('/verify', methods=['POST'])
 def verify():
     code = request.form.get('code')
@@ -414,14 +390,17 @@ def verify():
                     surname=user_data['surname'],
                     email=user_data['email'],
                     password_hash=user_data['password_hash'],
-                    state=user_data['state'],
-                    city=user_data['city']
+                    state='მიუთითებელი',
+                    city='მიუთითებელი'
                 )
                 db.session.add(new_user)
                 db.session.commit()
+
+                # გასუფთავდეს session
                 session.pop('registration_data', None)
                 session.pop('verification_code', None)
-                flash("რეგისტრაცია დასრულდა!", "success")
+
+                flash("Ვერიფიკაცია წარმატებით დასრულდა. რეგისტრაცია დასრულდა!", "success")
                 return redirect(url_for('login'))
             else:
                 flash("მონაცემები არ მოიძებნა", "error")
@@ -429,9 +408,8 @@ def verify():
             flash("არასწორი ვერიფიკაციის კოდი", "error")
     except ValueError:
         flash("კოდი უნდა იყოს რიცხვი", "error")
-    return render_template('verify.html')
-    
 
+    return render_template('verify.html')
 
 @app.route('/paroli', methods=['GET', 'POST'])
 def forgot():
@@ -440,21 +418,37 @@ def forgot():
         user = User.query.filter_by(email=email).first()
 
         if user:
+            # აქ შეიძლება პაროლის აღდგენა გაგზავნა (მაგალითად სარანდომო პაროლი)
             new_password = str(random.randint(100000, 999999))
             hashed_password = generate_password_hash(new_password)
             user.password_hash = hashed_password
             db.session.commit()
 
+            # გაგზავნა ელფოსტით
             subject = "ახალი პაროლი"
             body = f"თქვენი ახალი პაროლია: {new_password}"
-            send_email_thread(subject, body, email)
 
-            flash("ახალი პაროლი გაიგზავნა ელფოსტაზე", "success")
+            sender_email = "shota.cholokava17@gmail.com"
+            password = "vgdc lvtc iozy jwni"
+
+            msg = MIMEMultipart()
+            msg['From'] = sender_email
+            msg['To'] = email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(body, 'plain'))
+
+            try:
+                with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                    server.starttls()
+                    server.login(sender_email, password)
+                    server.sendmail(sender_email, email, msg.as_string())
+                flash("ახალი პაროლი გაიგზავნა ელფოსტაზე", "success")
+            except Exception as e:
+                flash(f"შეცდომა გაგზავნისას: {e}", "error")
         else:
             flash("ელფოსტა არ არის რეგისტრირებული", "danger")
 
     return render_template('forgot.html')
-    
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
@@ -511,7 +505,8 @@ def profile():
 
     return render_template('profile.html', user=user)
 
-@app.route('/login', methods=['GET', 'POST'])
+
+@app.route('/login', methods=['GET', 'POST'], endpoint='login')
 def login():
     if request.method == 'POST':
         email = request.form.get('email')
@@ -523,12 +518,17 @@ def login():
             session['username'] = user.name
             session['state'] = user.state
             session['is_admin'] = user.is_admin
-            return redirect(url_for('home'))
+
+            next_page = request.args.get('next')
+            # ახლა url_for('home') უპრობლემოდ იპოვის ზედა ფუნქციას
+            return redirect(next_page) if next_page else redirect(url_for('home'))
+
         else:
             flash("არასწორი ელფოსტა ან პაროლი", "danger")
             return redirect(url_for('login'))
 
     return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
@@ -688,6 +688,12 @@ def rare():
 @app.route("/lesse", endpoint='lesse')
 def lesse():
     return render_template("online.html")
+
+
+
+
+
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -699,17 +705,38 @@ def register():
         state = request.form.get('state')
         city = request.form.get('city')
 
+        #  1. reCAPTCHA შემოწმება
+        #recaptcha_response = request.form.get('g-recaptcha-response')
+        ##secret_key = '6LdTxpYrAAAAABlJRBpzeLIiJts84lj4T6xxiRgl'  # შეავსე შენი reCAPTCHA საიდუმლო გასაღებით
+        #verify_url = 'https://www.google.com/recaptcha/api/siteverify'
+
+       # response = requests.post(verify_url, data={
+          #  'secret': secret_key,
+          #  'response': recaptcha_response
+        #})
+        #result = response.json()
+
+        #if not result.get('success'):
+            #flash('გთხოვთ დაადასტურეთ, რომ არ ხართ რობოტი.', 'danger')
+            #return render_template('register form.html')
+
+        #  2. უკვე რეგისტრირებული ელფოსტა
         if User.query.filter_by(email=email).first():
             flash("ელფოსტა უკვე რეგისტრირებულია", "danger")
             return render_template('register form.html')
 
+        #  3. პაროლების შედარება
         if password != confirm_password:
             flash("პაროლები არ ემთხვევა", "danger")
             return render_template('register form.html')
 
         hashed_password = generate_password_hash(password)
 
+        #  4. კოდის გენერაცია
         verification_code = random.randint(100001, 999999)
+        print(verification_code)
+
+        #  5. სესიაში რეგისტრაციის მონაცემები
         session['verification_code'] = verification_code
         session['registration_data'] = {
             'name': name,
@@ -720,17 +747,30 @@ def register():
             'city': city
         }
 
-        # ელფოსტის გაგზავნა thread-ში
+        #  6. ელფოსტის გაგზავნა
         subject = "ვერიფიკაციის კოდი"
         body = f"თქვენი ვერიფიკაციის კოდია: {verification_code}"
-        send_email_thread(subject, body, email)
+        sender_email = "shota.cholokava17@gmail.com"
+        password_smtp = "vgdc lvtc iozy jwni"
 
-        flash("ვერიფიკაციის კოდი გაიგზავნა ელფოსტაზე", "success")
-        return redirect(url_for('verify1'))
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        try:
+            with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                server.starttls()
+                server.login(sender_email, password_smtp)
+                server.sendmail(sender_email, email, msg.as_string())
+            flash("ვერიფიკაციის კოდი გაიგზავნა ელფოსტაზე", "success")
+            return redirect(url_for('verify1'))
+        except Exception as e:
+            flash(f"შეცდომა გაგზავნისას: {e}", "danger")
+            return render_template('register form.html')
 
     return render_template('register form.html')
-
-   
 
 
 @app.route('/archevani', endpoint='archevani')
@@ -1125,6 +1165,3 @@ def delete_carousel_image(id):
     return redirect(url_for('manage_carousel'))
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
