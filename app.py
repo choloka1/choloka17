@@ -18,6 +18,7 @@ from datetime import datetime
 from os import urandom
 from flask import Flask,send_file
 from flask_sqlalchemy import SQLAlchemy
+from threading import Thread
 
 # -------------------- CONFIG --------------------
 UPLOAD_FOLDER = 'static/uploads'
@@ -1121,4 +1122,5 @@ def delete_carousel_image(id):
     return redirect(url_for('manage_carousel'))
 if __name__ == '__main__':
     app.run(debug=True)
+
 
