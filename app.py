@@ -101,26 +101,29 @@ class CarouselImage(db.Model):
 
 # -------------------- INIT --------------------
 
-def send_email_thread(subject, body, to_email):
-    def send():
-        sender_email = "shota.cholokava17@gmail.com"
-        password = "vgdc lvtc iozy jwni"
+def send_email(subject, body, to_email):
+    sender_email = "shota.cholokava17@gmail.com"  # შეცვალე შენით
+    app_password = "vgdc lvtc iozy jwni"     # ეს არის 16-ნიშნა კოდი Gmail–დან
 
-        msg = MIMEMultipart()
-        msg['From'] = sender_email
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'plain'))
+    # მესიჯის შექმნა
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
 
-        try:
-            with smtplib.SMTP("smtp.gmail.com", 587) as server:
-                server.starttls()
-                server.login(sender_email, password)
-                server.sendmail(sender_email, to_email, msg.as_string())
-            print(f"Email sent to {to_email}")
-        except Exception as e:
-            print(f"Failed to send email to {to_email}: {e}")
-    Thread(target=send).start()
+    try:
+        # SMTP კავშირის გახსნა
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()                  # დაშიფვრა
+            server.login(sender_email, app_password)
+            server.sendmail(sender_email, to_email, msg.as_string())
+        print(f"✅ Email წარმატებით გაიგზავნა {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ Email გაგზავნა ვერ მოხერხდა: {e}")
+        return False
+
 
 with app.app_context():
     db.create_all()
@@ -1122,5 +1125,6 @@ def delete_carousel_image(id):
     return redirect(url_for('manage_carousel'))
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
