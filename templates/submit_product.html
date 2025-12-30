@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>პროდუქტის დამატება</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container my-5">
+    <h2 class="mb-4 text-center">პროდუქტის დამატება</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ 'success' if category=='success' else ('danger' if category in ['danger','error'] else 'info') }}">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" enctype="multipart/form-data" class="card p-4 shadow-sm">
+      <div class="mb-3">
+        <label class="form-label">სახელი</label>
+        <input type="text" name="name" class="form-control" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">აღწერა</label>
+        <textarea name="description" class="form-control" rows="3" required></textarea>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">ფასი (₾)</label>
+        <input type="number" name="price" class="form-control" step="0.01" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">კატეგორია</label>
+        <select name="category" class="form-select" required>
+          <option value="">აირჩიეთ...</option>
+          <option value="ბოსტნეული">ბოსტნეული</option>
+          <option value="ხილი">ხილი</option>
+          <option value="მარცვლეული">მარცვლეული</option>
+          <option value="რძის პროდუქტი">რძის პროდუქტი</option>
+          <option value="სხვა">სხვა</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">ლოკაცია</label>
+        <input type="text" name="location" class="form-control" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">ფოტო</label>
+        <input type="file" name="photo" class="form-control" accept="image/*" required>
+      </div>
+
+      <button type="submit" class="btn btn-success w-100">გაგზავნა დასამტკიცებლად</button>
+    </form>
+  </div>
+</body>
+</html>
