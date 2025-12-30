@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>პროფილის მართვა | Agro Imperial</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Fira+GO:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <style>
+        :root {
+            --imperial-green: #042f24;
+            --royal-gold: #d4af37;
+            --soft-bg: #f4f7f6;
+            --glass-card: rgba(255, 255, 255, 0.92);
+        }
+
+        body {
+            background: linear-gradient(rgba(4, 47, 36, 0.05), rgba(4, 47, 36, 0.05)), var(--soft-bg);
+            font-family: 'Montserrat', 'Fira GO', sans-serif;
+            color: var(--imperial-green);
+            min-height: 100vh;
+        }
+
+        /* --- Profile Container --- */
+        .profile-wrapper {
+            max-width: 800px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        .imperial-card {
+            background: var(--glass-card);
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            box-shadow: 0 30px 70px rgba(4, 47, 36, 0.1);
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- Back to Home --- */
+        .back-home-link {
+            position: absolute;
+            top: 30px;
+            left: 40px;
+            color: var(--imperial-green);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0.6;
+        }
+        .back-home-link:hover { color: var(--royal-gold); opacity: 1; transform: translateX(-5px); }
+
+        .profile-header { text-align: center; margin-bottom: 50px; }
+        .profile-header h2 { font-weight: 800; font-size: 2.2rem; letter-spacing: -1px; }
+        .gold-line { width: 60px; height: 4px; background: var(--royal-gold); margin: 15px auto; border-radius: 50px; }
+
+        /* --- Form Styles --- */
+        .form-label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--imperial-green);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group-imperial {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .form-control, .form-select {
+            border-radius: 15px;
+            padding: 14px 20px;
+            border: 2px solid #eef1ef;
+            background-color: #fdfdfd;
+            transition: 0.3s;
+            font-weight: 500;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--royal-gold);
+            box-shadow: 0 0 0 5px rgba(212, 175, 55, 0.1);
+            background-color: #fff;
+        }
+
+        /* --- Section Divider --- */
+        .imperial-divider {
+            margin: 40px 0;
+            border: 0;
+            border-top: 1px dashed rgba(212, 175, 55, 0.4);
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: var(--royal-gold);
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* --- Buttons --- */
+        .btn-save-imperial {
+            background: linear-gradient(135deg, var(--imperial-green), #1a7454);
+            color: white;
+            border: none;
+            border-radius: 18px;
+            padding: 18px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            transition: 0.4s;
+            box-shadow: 0 15px 30px rgba(4, 47, 36, 0.2);
+        }
+
+        .btn-save-imperial:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px rgba(4, 47, 36, 0.3);
+            filter: brightness(1.1);
+            color: white;
+        }
+
+        .btn-logout-imperial {
+            border: 2px solid #e0e0e0;
+            color: #888;
+            border-radius: 15px;
+            padding: 12px 35px;
+            font-weight: 700;
+            transition: 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-logout-imperial:hover {
+            border-color: #dc3545;
+            color: #dc3545;
+            background: rgba(220, 53, 69, 0.05);
+        }
+
+        /* --- Alerts --- */
+        .alert {
+            border-radius: 15px;
+            border: none;
+            font-weight: 600;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+
+{% include 'base.html' %}
+
+<div class="profile-wrapper">
+    <div class="imperial-card animate__animated animate__fadeInUp">
+
+        <a href="{{ url_for('home') }}" class="back-home-link">
+            <i class="fas fa-arrow-left"></i> მთავარი
+        </a>
+
+        <div class="profile-header">
+            <h2>პროფილის <span>რედაქტირება</span></h2>
+            <div class="gold-line"></div>
+            <p class="text-muted small font-fira">განაახლეთ თქვენი მონაცემები Agro Imperial-ის ეკოსისტემაში</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'danger' if category in ['error', 'danger'] else category }} alert-dismissible fade show text-center" role="alert">
+                <i class="fas fa-info-circle me-2"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fas fa-user-tag text-warning"></i> სახელი</label>
+                    <input type="text" name="name" class="form-control" value="{{ user.name | default('') }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fas fa-user-tag text-warning"></i> გვარი</label>
+                    <input type="text" name="surname" class="form-control" value="{{ user.surname | default('') }}" required>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label"><i class="fas fa-map-marker-alt text-warning"></i> რაიონი / რეგიონი</label>
+                    <select class="form-select" name="state" required>
+                        <option value="" disabled {% if not user.state %}selected{% endif %}>აირჩიე რეგიონი</option>
+                        {% set regions = ['იმერეთი', 'კახეთი', 'სამეგრელო', 'აფხაზეთი', 'გურია', 'სვანეთი', 'რაჭა', 'აჭარა', 'შიდა ქართლი', 'ქვემო ქართლი', 'სამცხე-ჯავახეთი'] %}
+                        {% for region in regions %}
+                            <option value="{{ region }}" {% if user.state == region %}selected{% endif %}>{{ region }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label"><i class="fas fa-city text-warning"></i> ქალაქი</label>
+                    <input type="text" name="city" class="form-control" value="{{ user.city | default('') }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label"><i class="fas fa-mail-bulk text-warning"></i> Zip კოდი</label>
+                    <input type="text" name="zip_code" class="form-control" value="{{ user.zip_code | default('') }}">
+                </div>
+            </div>
+
+            <hr class="imperial-divider">
+            <h5 class="section-title">უსაფრთხოება & წვდომა</h5>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fas fa-key text-warning"></i> ახალი პაროლი</label>
+                    <input type="password" name="new_password" class="form-control" placeholder="••••••••">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fas fa-check-double text-warning"></i> დაადასტურე</label>
+                    <input type="password" name="confirm_password" class="form-control" placeholder="••••••••">
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label"><i class="fas fa-user-shield text-warning"></i> ადმინისტრატორის კოდი</label>
+                    <input type="password" class="form-control" name="admin_code" placeholder="ჩაწერეთ კოდი სტატუსისთვის">
+                </div>
+            </div>
+
+            <div class="mt-5">
+                <button type="submit" class="btn btn-save-imperial w-100">
+                    მონაცემების შენახვა <i class="fas fa-save ms-2"></i>
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-5 text-center">
+            <a href="{{ url_for('logout') }}" class="btn-logout-imperial">
+                სისტემიდან გასვლა <i class="fas fa-sign-out-alt ms-2"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
