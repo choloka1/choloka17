@@ -24,9 +24,8 @@ UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask(__name__)
-import os
+app.secret_key = "sdf8#2kdn!9slq3j"  # შეიძლება იყოს ციფრებიც, ასოებიც, სიმბოლოებიც
 
-app.secret_key = os.environ.get("SECRET_KEY")
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -1165,3 +1164,4 @@ def delete_carousel_image(id):
     return redirect(url_for('manage_carousel'))
 if __name__ == '__main__':
     app.run(debug=True)
+
