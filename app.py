@@ -1,23 +1,19 @@
-import os
 import random
 import smtplib
-from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from functools import wraps
-from os import urandom
-from flask import Flask, render_template, request, redirect, url_for, flash, session,jsonify
-from flask_sqlalchemy import SQLAlchemy
+from flask import  render_template, redirect, url_for, flash, session,jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from flask import request, jsonify
-import pandas as pd
-from io import BytesIO
-import os
+
 from datetime import datetime
-from os import urandom
 from flask import Flask,send_file
 from flask_sqlalchemy import SQLAlchemy
+
+
+
+
 
 # -------------------- CONFIG --------------------
 UPLOAD_FOLDER = 'static/uploads'
@@ -856,9 +852,14 @@ def upload_product():
 
     return render_template('upload_prod.html')
 
+
+from openpyxl import Workbook
+from io import BytesIO
+
+
 @app.route('/export_analysis_excel', methods=['POST'])
 def export_analysis_excel():
-    # ვიღებთ მონაცემებს ფორმიდან
+    # მონაცემების მიღება ფორმიდან
     area = request.form.get('area')
     crop = request.form.get('crop')
     yield_kg = request.form.get('yield')
@@ -866,18 +867,24 @@ def export_analysis_excel():
     costs = request.form.get('costs')
     profit = request.form.get('profit')
 
-    # მონაცემების მომზადება Excel-ისთვის
-    data = {
-        "პარამეტრი": ["კულტურა", "ფართობი (მ²)", "მოსავალი (კგ)", "შემოსავალი (₾)", "ჯამური ხარჯი (₾)", "წმინდა მოგება (₾)"],
-        "მნიშვნელობა": [crop, area, yield_kg, income, costs, profit]
-    }
+    # Excel-ის შექმნა openpyxl-ით
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Analysis Report"
 
-    df = pd.DataFrame(data)
+    # სათაურების და მონაცემების დამატება
+    ws.append(["პარამეტრი", "მნიშვნელობა"])
+    ws.append(["კულტურა", crop])
+    ws.append(["ფართობი (მ²)", area])
+    ws.append(["მოსავალი (კგ)", yield_kg])
+    ws.append(["შემოსავალი (₾)", income])
+    ws.append(["ჯამური ხარჯი (₾)", costs])
+    ws.append(["წმინდა მოგება (₾)", profit])
+
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Analysis_Report')
-
+    wb.save(output)
     output.seek(0)
+
     return send_file(output,
                      download_name=f"Agro_Analysis_{crop}_{datetime.now().strftime('%Y%m%d')}.xlsx",
                      as_attachment=True)
@@ -1092,38 +1099,35 @@ def process_product(product_id):
     return redirect(url_for('admin_products'))
 
 
-
-
-
 @app.route('/admin/export_users')
 @admin_required
 def export_users():
     users = User.query.all()
 
-    # მონაცემების მომზადება
-    data = []
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Users"
+
+    # სვეტების სათაურები
+    ws.append(["სახელი", "გვარი", "ელფოსტა", "ქალაქი", "რეგიონი", "რეგისტრაციის თარიღი"])
+
     for user in users:
-        data.append({
-            "სახელი": user.name,
-            "გვარი": user.surname,
-            "ელფოსტა": user.email,
-            "ქალაქი": user.city,
-            "რეგიონი": user.state,
-            "რეგისტრაციის თარიღი": user.created_at.strftime('%Y-%m-%d')
-        })
+        ws.append([
+            user.name,
+            user.surname,
+            user.email,
+            user.city,
+            user.state,
+            user.created_at.strftime('%Y-%m-%d')
+        ])
 
-    # Pandas-ის გამოყენებით ექსელის შექმნა
-    df = pd.DataFrame(data)
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Users')
-
+    wb.save(output)
     output.seek(0)
 
     return send_file(output,
                      download_name=f"users_export_{datetime.now().strftime('%Y%m%d')}.xlsx",
                      as_attachment=True)
-
 
 @app.route('/admin/carousel', methods=['GET', 'POST'])
 @admin_required
@@ -1165,5 +1169,4 @@ def delete_carousel_image(id):
     return redirect(url_for('manage_carousel'))
 if __name__ == '__main__':
     app.run(debug=True)
-
 
