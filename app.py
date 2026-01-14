@@ -1164,4 +1164,5 @@ def delete_carousel_image(id):
     flash("ფოტო წაიშალა კარუსელიდან.", "info")
     return redirect(url_for('manage_carousel'))
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
+
