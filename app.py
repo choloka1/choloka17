@@ -859,6 +859,7 @@ from io import BytesIO
 
 @app.route('/export_analysis_excel', methods=['POST'])
 def export_analysis_excel():
+    from openpyxl import Workbook
     # მონაცემების მიღება ფორმიდან
     area = request.form.get('area')
     crop = request.form.get('crop')
@@ -1102,6 +1103,7 @@ def process_product(product_id):
 @app.route('/admin/export_users')
 @admin_required
 def export_users():
+    from openpyxl import Workbook
     users = User.query.all()
 
     wb = Workbook()
@@ -1169,4 +1171,5 @@ def delete_carousel_image(id):
     return redirect(url_for('manage_carousel'))
 if __name__ == '__main__':
     app.run(debug=True)
+
 
