@@ -10,6 +10,9 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from flask import Flask,send_file
 from flask_sqlalchemy import SQLAlchemy
+import resend
+
+resend.api_key = "re_SM6bxW6g_AcV5sFawpBRxWppkPhRGx2Qk"
 
 
 
@@ -414,34 +417,28 @@ def forgot():
         user = User.query.filter_by(email=email).first()
 
         if user:
-            # ახალი შემთხვევითი პაროლის გენერაცია
             new_password = str(random.randint(100000, 999999))
             hashed_password = generate_password_hash(new_password)
             user.password_hash = hashed_password
             db.session.commit()
 
-            # იმეილის მომზადება
-            subject = "ახალი პაროლი"
-            body = f"თქვენი ახალი პაროლია: {new_password}"
-            sender_email = "shota.cholokava17@gmail.com"
-            password = "vgdc lvtc iozy jwni"
-
-            msg = MIMEMultipart()
-            msg['From'] = sender_email
-            msg['To'] = email
-            msg['Subject'] = subject
-            msg.attach(MIMEText(body, 'plain'))
-
+            # იმეილის გაგზავნა Resend API-ს მეშვეობით
             try:
-                # ვიყენებთ SMTP_SSL-ს 465 პორტზე, რაც ყველაზე საიმედოა Render-ისთვის
-                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as server:
-                    server.login(sender_email, password)
-                    server.sendmail(sender_email, email, msg.as_string())
+                resend.Emails.send({
+                    "from": "onboarding@resend.dev",
+                    "to": email,
+                    "subject": "პაროლის აღდგენა",
+                    "html": f"""
+                        <h3>პაროლის აღდგენა</h3>
+                        <p>თქვენი ახალი დროებითი პაროლია:</p>
+                        <h2 style='color: #E24A4A;'>{new_password}</h2>
+                        <p>გთხოვთ, სისტემაში შესვლისთანავე შეცვალოთ პაროლი.</p>
+                    """
+                })
                 flash("ახალი პაროლი გაიგზავნა ელფოსტაზე", "success")
             except Exception as e:
-                # შეცდომის შემთხვევაში მომხმარებელი რომ არ დაიბნეს
-                print(f"Email error: {e}")
-                flash(f"იმეილი ვერ გაიგზავნა. დროებითი პაროლია: {new_password}", "warning")
+                print(f"Resend API Error: {e}")
+                flash(f"იმეილი ვერ გაიგზავნა. თქვენი ახალი პაროლია: {new_password}", "warning")
         else:
             flash("ელფოსტა არ არის რეგისტრირებული", "danger")
 
@@ -702,59 +699,41 @@ def register():
         state = request.form.get('state')
         city = request.form.get('city')
 
-        # 1. უკვე რეგისტრირებული ელფოსტა
         if User.query.filter_by(email=email).first():
             flash("ელფოსტა უკვე რეგისტრირებულია", "danger")
             return render_template('register form.html')
 
-        # 2. პაროლების შედარება
         if password != confirm_password:
             flash("პაროლები არ ემთხვევა", "danger")
             return render_template('register form.html')
 
         hashed_password = generate_password_hash(password)
-
-        # 3. კოდის გენერაცია
         verification_code = random.randint(100001, 999999)
 
-        # 4. სესიაში რეგისტრაციის მონაცემები
         session['verification_code'] = verification_code
         session['registration_data'] = {
-            'name': name,
-            'surname': surname,
-            'email': email,
-            'password_hash': hashed_password,
-            'state': state,
-            'city': city
+            'name': name, 'surname': surname, 'email': email,
+            'password_hash': hashed_password, 'state': state, 'city': city
         }
 
-        # 5. ელფოსტის მომზადება
-        subject = "ვერიფიკაციის კოდი"
-        body = f"თქვენი ვერიფიკაციის კოდია: {verification_code}"
-        sender_email = "shota.cholokava17@gmail.com"
-        password_smtp = "vgdc lvtc iozy jwni"
-
-        msg = MIMEMultipart()
-        msg['From'] = sender_email
-        msg['To'] = email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'plain'))
-
-        # 6. ელფოსტის გაგზავნა (ჩასწორებული ლოგიკა)
+        # იმეილის გაგზავნა Resend API-ს მეშვეობით
         try:
-            # ვიყენებთ SMTP_SSL-ს 465 პორტზე და 10 წამიან ტაიმაუტს
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as server:
-                server.login(sender_email, password_smtp)
-                server.sendmail(sender_email, email, msg.as_string())
-            
+            resend.Emails.send({
+                "from": "onboarding@resend.dev",
+                "to": email,
+                "subject": "ვერიფიკაციის კოდი",
+                "html": f"""
+                    <h3>მოგესალმებით, {name}!</h3>
+                    <p>თქვენი რეგისტრაციის დასასრულებლად საჭირო ვერიფიკაციის კოდია:</p>
+                    <h2 style='color: #4A90E2;'>{verification_code}</h2>
+                """
+            })
             flash("ვერიფიკაციის კოდი გაიგზავნა ელფოსტაზე", "success")
             return redirect(url_for('verify1'))
-            
         except Exception as e:
-            # თუ იმეილი ვერ გაიგზავნა, ლოგებში გამოჩნდება მიზეზი
-            print(f"SMTP Error: {e}")
-            # მომხმარებელს მაინც გადავიყვანთ, რომ არ გაიჭედოს (სასურველია ტესტირებისას)
-            flash(f"იმეილის სერვერთან კავშირი ვერ დამყარდა. დროებითი კოდია: {verification_code}", "warning")
+            print(f"Resend API Error: {e}")
+            # თუ API-მაც ვერ გააგზავნა, კოდს ვაჩვენებთ ფლეშ მესიჯში (Fallback)
+            flash(f"იმეილი ვერ გაიგზავნა. თქვენი კოდია: {verification_code}", "warning")
             return redirect(url_for('verify1'))
 
     return render_template('register form.html')
@@ -850,7 +829,6 @@ from io import BytesIO
 
 @app.route('/export_analysis_excel', methods=['POST'])
 def export_analysis_excel():
-    from openpyxl import Workbook
     # მონაცემების მიღება ფორმიდან
     area = request.form.get('area')
     crop = request.form.get('crop')
@@ -1094,7 +1072,6 @@ def process_product(product_id):
 @app.route('/admin/export_users')
 @admin_required
 def export_users():
-    from openpyxl import Workbook
     users = User.query.all()
 
     wb = Workbook()
@@ -1162,6 +1139,3 @@ def delete_carousel_image(id):
     return redirect(url_for('manage_carousel'))
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
