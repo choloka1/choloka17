@@ -20,4 +20,6 @@ tzdata==2025.3
 greenlet==3.2.3
 idna==3.10
 et_xmlfile==2.0.0
+resend
 gunicorn
+
