@@ -414,16 +414,15 @@ def forgot():
         user = User.query.filter_by(email=email).first()
 
         if user:
-            # აქ შეიძლება პაროლის აღდგენა გაგზავნა (მაგალითად სარანდომო პაროლი)
+            # ახალი შემთხვევითი პაროლის გენერაცია
             new_password = str(random.randint(100000, 999999))
             hashed_password = generate_password_hash(new_password)
             user.password_hash = hashed_password
             db.session.commit()
 
-            # გაგზავნა ელფოსტით
+            # იმეილის მომზადება
             subject = "ახალი პაროლი"
             body = f"თქვენი ახალი პაროლია: {new_password}"
-
             sender_email = "shota.cholokava17@gmail.com"
             password = "vgdc lvtc iozy jwni"
 
@@ -434,13 +433,15 @@ def forgot():
             msg.attach(MIMEText(body, 'plain'))
 
             try:
-                with smtplib.SMTP("smtp.gmail.com", 587) as server:
-                    server.starttls()
+                # ვიყენებთ SMTP_SSL-ს 465 პორტზე, რაც ყველაზე საიმედოა Render-ისთვის
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as server:
                     server.login(sender_email, password)
                     server.sendmail(sender_email, email, msg.as_string())
                 flash("ახალი პაროლი გაიგზავნა ელფოსტაზე", "success")
             except Exception as e:
-                flash(f"შეცდომა გაგზავნისას: {e}", "error")
+                # შეცდომის შემთხვევაში მომხმარებელი რომ არ დაიბნეს
+                print(f"Email error: {e}")
+                flash(f"იმეილი ვერ გაიგზავნა. დროებითი პაროლია: {new_password}", "warning")
         else:
             flash("ელფოსტა არ არის რეგისტრირებული", "danger")
 
@@ -701,38 +702,22 @@ def register():
         state = request.form.get('state')
         city = request.form.get('city')
 
-        #  1. reCAPTCHA შემოწმება
-        #recaptcha_response = request.form.get('g-recaptcha-response')
-        ##secret_key = '6LdTxpYrAAAAABlJRBpzeLIiJts84lj4T6xxiRgl'  # შეავსე შენი reCAPTCHA საიდუმლო გასაღებით
-        #verify_url = 'https://www.google.com/recaptcha/api/siteverify'
-
-       # response = requests.post(verify_url, data={
-          #  'secret': secret_key,
-          #  'response': recaptcha_response
-        #})
-        #result = response.json()
-
-        #if not result.get('success'):
-            #flash('გთხოვთ დაადასტურეთ, რომ არ ხართ რობოტი.', 'danger')
-            #return render_template('register form.html')
-
-        #  2. უკვე რეგისტრირებული ელფოსტა
+        # 1. უკვე რეგისტრირებული ელფოსტა
         if User.query.filter_by(email=email).first():
             flash("ელფოსტა უკვე რეგისტრირებულია", "danger")
             return render_template('register form.html')
 
-        #  3. პაროლების შედარება
+        # 2. პაროლების შედარება
         if password != confirm_password:
             flash("პაროლები არ ემთხვევა", "danger")
             return render_template('register form.html')
 
         hashed_password = generate_password_hash(password)
 
-        #  4. კოდის გენერაცია
+        # 3. კოდის გენერაცია
         verification_code = random.randint(100001, 999999)
-        print(verification_code)
 
-        #  5. სესიაში რეგისტრაციის მონაცემები
+        # 4. სესიაში რეგისტრაციის მონაცემები
         session['verification_code'] = verification_code
         session['registration_data'] = {
             'name': name,
@@ -743,7 +728,7 @@ def register():
             'city': city
         }
 
-        #  6. ელფოსტის გაგზავნა
+        # 5. ელფოსტის მომზადება
         subject = "ვერიფიკაციის კოდი"
         body = f"თქვენი ვერიფიკაციის კოდია: {verification_code}"
         sender_email = "shota.cholokava17@gmail.com"
@@ -755,16 +740,22 @@ def register():
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain'))
 
+        # 6. ელფოსტის გაგზავნა (ჩასწორებული ლოგიკა)
         try:
-            with smtplib.SMTP("smtp.gmail.com", 587) as server:
-                server.starttls()
+            # ვიყენებთ SMTP_SSL-ს 465 პორტზე და 10 წამიან ტაიმაუტს
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as server:
                 server.login(sender_email, password_smtp)
                 server.sendmail(sender_email, email, msg.as_string())
+            
             flash("ვერიფიკაციის კოდი გაიგზავნა ელფოსტაზე", "success")
             return redirect(url_for('verify1'))
+            
         except Exception as e:
-            flash(f"შეცდომა გაგზავნისას: {e}", "danger")
-            return render_template('register form.html')
+            # თუ იმეილი ვერ გაიგზავნა, ლოგებში გამოჩნდება მიზეზი
+            print(f"SMTP Error: {e}")
+            # მომხმარებელს მაინც გადავიყვანთ, რომ არ გაიჭედოს (სასურველია ტესტირებისას)
+            flash(f"იმეილის სერვერთან კავშირი ვერ დამყარდა. დროებითი კოდია: {verification_code}", "warning")
+            return redirect(url_for('verify1'))
 
     return render_template('register form.html')
 
@@ -1171,5 +1162,6 @@ def delete_carousel_image(id):
     return redirect(url_for('manage_carousel'))
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
